@@ -1,0 +1,129 @@
+import { useState } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
+import { mockServices, type Service } from "@/lib/mock-data";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus, Pencil, Trash2, Clock, DollarSign } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+const Services = () => {
+  const [services, setServices] = useState<Service[]>(mockServices);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Service | null>(null);
+  const [name, setName] = useState("");
+  const [duration, setDuration] = useState("");
+  const [price, setPrice] = useState("");
+
+  const openNew = () => {
+    setEditing(null);
+    setName("");
+    setDuration("");
+    setPrice("");
+    setDialogOpen(true);
+  };
+
+  const openEdit = (s: Service) => {
+    setEditing(s);
+    setName(s.name);
+    setDuration(String(s.duration));
+    setPrice(s.price ? String(s.price) : "");
+    setDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!name || !duration) {
+      toast.error("Preencha nome e duração");
+      return;
+    }
+    if (editing) {
+      setServices((prev) =>
+        prev.map((s) =>
+          s.id === editing.id
+            ? { ...s, name, duration: Number(duration), price: price ? Number(price) : undefined }
+            : s
+        )
+      );
+      toast.success("Serviço atualizado");
+    } else {
+      setServices((prev) => [
+        ...prev,
+        { id: String(Date.now()), name, duration: Number(duration), price: price ? Number(price) : undefined },
+      ]);
+      toast.success("Serviço criado");
+    }
+    setDialogOpen(false);
+  };
+
+  const handleDelete = (id: string) => {
+    setServices((prev) => prev.filter((s) => s.id !== id));
+    toast.success("Serviço removido");
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-foreground">Serviços</h1>
+        <Button onClick={openNew} className="bg-gradient-gold text-primary-foreground">
+          <Plus className="h-4 w-4 mr-1" /> Novo
+        </Button>
+      </div>
+
+      <div className="grid gap-3">
+        {services.map((s) => (
+          <div key={s.id} className="glass-card p-4 flex items-center justify-between">
+            <div>
+              <p className="font-medium text-foreground">{s.name}</p>
+              <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {s.duration}min</span>
+                {s.price && <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> R${s.price}</span>}
+              </div>
+            </div>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(s.id)}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Editar serviço" : "Novo serviço"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Duração (min)</Label>
+              <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Preço (R$)</Label>
+              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="mt-1" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleSave} className="bg-gradient-gold text-primary-foreground">Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </DashboardLayout>
+  );
+};
+
+export default Services;
