@@ -29,7 +29,7 @@ const App = () => (
           <Route path="/dashboard/services" element={<Services />} />
           <Route path="/dashboard/metrics" element={<Metrics />} />
           <Route path="/dashboard/subscription" element={<Subscription />} />
-          <Route path="/barbearia/:slug" element={<PublicBooking />} />
+          <Route path="/agendar/:slug" element={<PublicBooking />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

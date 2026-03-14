@@ -4,14 +4,10 @@ import { mockServices, type Service } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Clock, DollarSign } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, DollarSign, Tag } from "lucide-react";
 import { toast } from "sonner";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 
 const Services = () => {
@@ -21,12 +17,14 @@ const Services = () => {
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("");
   const [price, setPrice] = useState("");
+  const [category, setCategory] = useState("");
 
   const openNew = () => {
     setEditing(null);
     setName("");
     setDuration("");
     setPrice("");
+    setCategory("");
     setDialogOpen(true);
   };
 
@@ -35,6 +33,7 @@ const Services = () => {
     setName(s.name);
     setDuration(String(s.duration));
     setPrice(s.price ? String(s.price) : "");
+    setCategory(s.category || "");
     setDialogOpen(true);
   };
 
@@ -47,7 +46,7 @@ const Services = () => {
       setServices((prev) =>
         prev.map((s) =>
           s.id === editing.id
-            ? { ...s, name, duration: Number(duration), price: price ? Number(price) : undefined }
+            ? { ...s, name, duration: Number(duration), price: price ? Number(price) : undefined, category: category || undefined }
             : s
         )
       );
@@ -55,7 +54,7 @@ const Services = () => {
     } else {
       setServices((prev) => [
         ...prev,
-        { id: String(Date.now()), name, duration: Number(duration), price: price ? Number(price) : undefined },
+        { id: String(Date.now()), name, duration: Number(duration), price: price ? Number(price) : undefined, category: category || undefined },
       ]);
       toast.success("Serviço criado");
     }
@@ -84,6 +83,7 @@ const Services = () => {
               <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {s.duration}min</span>
                 {s.price && <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> R${s.price}</span>}
+                {s.category && <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> {s.category}</span>}
               </div>
             </div>
             <div className="flex gap-1">
@@ -106,7 +106,11 @@ const Services = () => {
           <div className="space-y-4">
             <div>
               <Label>Nome</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
+              <Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1" placeholder="Ex: Corte Feminino, Manicure..." />
+            </div>
+            <div>
+              <Label>Categoria</Label>
+              <Input value={category} onChange={(e) => setCategory(e.target.value)} className="mt-1" placeholder="Ex: Cabelo, Unhas, Estética..." />
             </div>
             <div>
               <Label>Duração (min)</Label>

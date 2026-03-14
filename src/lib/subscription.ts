@@ -1,5 +1,5 @@
 const TRIAL_DAYS = 3;
-const TRIAL_START_KEY = "barber_trial_start";
+const TRIAL_START_KEY = "beauty_trial_start";
 
 export function getTrialStartDate(): Date {
   const stored = localStorage.getItem(TRIAL_START_KEY);
@@ -21,12 +21,12 @@ export function isTrialExpired(): boolean {
 }
 
 export function getSubscriptionStatus(): "trial" | "active" | "expired" {
-  const isPaid = localStorage.getItem("barber_subscription_active") === "true";
+  const isPaid = localStorage.getItem("beauty_subscription_active") === "true";
   if (isPaid) return "active";
   if (isTrialExpired()) return "expired";
   return "trial";
 }
 
 export function activateSubscription(): void {
-  localStorage.setItem("barber_subscription_active", "true");
+  localStorage.setItem("beauty_subscription_active", "true");
 }

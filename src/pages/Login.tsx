@@ -13,7 +13,7 @@ const Login = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (email && password) {
-      localStorage.setItem("barber_logged_in", "true");
+      localStorage.setItem("beauty_logged_in", "true");
       toast.success("Login realizado com sucesso!");
       navigate("/dashboard");
     } else {
@@ -24,7 +24,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm glass-card p-8">
-        <h1 className="text-2xl font-bold text-center text-gradient-gold mb-2">CutNow</h1>
+        <h1 className="text-2xl font-bold text-center text-gradient-gold mb-2">AgendaBeauty</h1>
         <h2 className="text-center text-muted-foreground mb-6">Entrar na sua conta</h2>
 
         <form onSubmit={handleLogin} className="space-y-4">
