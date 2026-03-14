@@ -33,7 +33,7 @@ const Landing = () => {
       {/* Hero */}
       <section className="flex flex-col items-center justify-center px-4 pt-20 pb-16 text-center">
         <h1 className="text-4xl md:text-6xl font-bold mb-4">
-          <span className="text-gradient-gold">AgendaBeauty</span>
+          <span className="text-gradient-gold">CutNow</span>
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-8">
           A plataforma completa de agendamento para barbearias, salões de beleza, studios e profissionais da área de beleza.
@@ -80,7 +80,7 @@ const Landing = () => {
       <section className="max-w-md mx-auto px-4 py-16 text-center">
         <div className="glass-card p-8">
           <h3 className="text-xl font-bold text-foreground mb-1">Plano Único</h3>
-          <p className="text-3xl font-bold text-gradient-gold mb-1">R$29,90<span className="text-base text-muted-foreground font-normal">/mês</span></p>
+          <p className="text-3xl font-bold text-gradient-gold mb-1">R$19,90<span className="text-base text-muted-foreground font-normal">/mês</span></p>
           <p className="text-sm text-muted-foreground mb-6">3 dias de teste gratuito</p>
           <ul className="text-left space-y-2 mb-6">
             {planFeatures.map((item) => (
@@ -98,7 +98,7 @@ const Landing = () => {
 
       {/* Footer */}
       <footer className="text-center py-8 text-sm text-muted-foreground border-t border-border">
-        © 2026 AgendaBeauty. Todos os direitos reservados.
+        © 2026 CutNow. Todos os direitos reservados.
       </footer>
     </div>
   );

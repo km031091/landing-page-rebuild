@@ -36,7 +36,7 @@ const Register = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm glass-card p-8">
-        <h1 className="text-2xl font-bold text-center text-gradient-gold mb-2">AgendaBeauty</h1>
+        <h1 className="text-2xl font-bold text-center text-gradient-gold mb-2">CutNow</h1>
         <h2 className="text-center text-muted-foreground mb-6">Criar conta</h2>
 
         <form onSubmit={handleRegister} className="space-y-4">
