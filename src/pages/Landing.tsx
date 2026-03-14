@@ -80,7 +80,7 @@ const Landing = () => {
       <section className="max-w-md mx-auto px-4 py-16 text-center">
         <div className="glass-card p-8">
           <h3 className="text-xl font-bold text-foreground mb-1">Plano Único</h3>
-          <p className="text-3xl font-bold text-gradient-gold mb-1">R$29,90<span className="text-base text-muted-foreground font-normal">/mês</span></p>
+          <p className="text-3xl font-bold text-gradient-gold mb-1">R$19,90<span className="text-base text-muted-foreground font-normal">/mês</span></p>
           <p className="text-sm text-muted-foreground mb-6">3 dias de teste gratuito</p>
           <ul className="text-left space-y-2 mb-6">
             {planFeatures.map((item) => (
