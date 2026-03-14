@@ -30,7 +30,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
   return (
     <div className="min-h-screen flex bg-background">
       <aside className="hidden md:flex flex-col w-56 border-r border-border bg-card p-4 gap-1">
-        <h1 className="text-xl font-bold text-gradient-gold mb-6 px-2">AgendaBeauty</h1>
+        <h1 className="text-xl font-bold text-gradient-gold mb-6 px-2">CutNow</h1>
         {navItems.map((item) => (
           <Link
             key={item.path}

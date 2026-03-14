@@ -98,7 +98,7 @@ const Landing = () => {
 
       {/* Footer */}
       <footer className="text-center py-8 text-sm text-muted-foreground border-t border-border">
-        © 2026 AgendaBeauty. Todos os direitos reservados.
+        © 2026 CutNow. Todos os direitos reservados.
       </footer>
     </div>
   );
