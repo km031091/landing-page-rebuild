@@ -13,6 +13,7 @@ const features = [
   "Cadastro de serviços ilimitado",
   "Suporte prioritário",
   "Notificações de agendamento",
+  "Multi-segmento (salão, barbearia, studio)",
 ];
 
 const Subscription = () => {
@@ -27,8 +28,8 @@ const Subscription = () => {
 
   return (
     <DashboardLayout>
-      <h1 className="text-2xl font-bold text-foreground mb-2">Plano CutNow</h1>
-      <p className="text-muted-foreground mb-6">Gerencie sua barbearia de forma profissional</p>
+      <h1 className="text-2xl font-bold text-foreground mb-2">Plano AgendaBeauty</h1>
+      <p className="text-muted-foreground mb-6">Gerencie seu negócio de beleza de forma profissional</p>
 
       {status === "trial" && (
         <div className="glass-card p-4 mb-6 flex items-center gap-3">
@@ -62,7 +63,7 @@ const Subscription = () => {
           <h3 className="font-semibold text-foreground">Plano mensal</h3>
         </div>
         <p className="text-3xl font-bold text-gradient-gold mb-6">
-          R$19,90<span className="text-sm text-muted-foreground font-normal">/mês</span>
+          R$29,90<span className="text-sm text-muted-foreground font-normal">/mês</span>
         </p>
 
         <ul className="space-y-2 mb-6">

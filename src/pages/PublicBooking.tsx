@@ -6,7 +6,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { mockServices, mockAppointments, availableTimes, type Appointment } from "@/lib/mock-data";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Check, Scissors, CalendarDays, Clock, User, Search, ArrowLeft } from "lucide-react";
+import { Check, Sparkles, CalendarDays, Clock, User, Search, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -73,8 +73,8 @@ const PublicBooking = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="w-full max-w-sm text-center">
-          <h1 className="text-3xl font-bold text-gradient-gold mb-2">CutNow</h1>
-          <p className="text-muted-foreground mb-8">Barbearia {slug || "Premium"}</p>
+          <h1 className="text-3xl font-bold text-gradient-gold mb-2">AgendaBeauty</h1>
+          <p className="text-muted-foreground mb-8">{slug?.replace(/-/g, " ") || "Espaço de Beleza"}</p>
           <div className="space-y-3">
             <Button onClick={() => { resetBooking(); setViewMode("booking"); }} className="w-full bg-gradient-gold text-primary-foreground font-semibold py-6 text-base">
               <CalendarDays className="mr-2 h-5 w-5" /> Agendar horário
@@ -119,7 +119,6 @@ const PublicBooking = () => {
     );
   }
 
-  // Booking flow
   return (
     <div className="min-h-screen bg-background px-4 py-8">
       <div className="max-w-md mx-auto">
@@ -138,7 +137,6 @@ const PublicBooking = () => {
           </div>
         ) : (
           <>
-            {/* Step indicators */}
             <div className="flex gap-2 mb-6">
               {[1, 2, 3, 4].map((s) => (
                 <div key={s} className={cn("h-1 flex-1 rounded-full", step >= s ? "bg-primary" : "bg-muted")} />
@@ -160,7 +158,7 @@ const PublicBooking = () => {
                     >
                       <div>
                         <p className="font-medium text-foreground">{s.name}</p>
-                        <p className="text-xs text-muted-foreground">{s.duration}min</p>
+                        <p className="text-xs text-muted-foreground">{s.duration}min{s.category ? ` • ${s.category}` : ""}</p>
                       </div>
                       {s.price && <span className="text-sm text-primary font-semibold">R${s.price}</span>}
                     </button>
@@ -213,7 +211,7 @@ const PublicBooking = () => {
                   className="mb-4"
                 />
                 <div className="glass-card p-4 mb-4 text-sm space-y-1">
-                  <p className="text-muted-foreground flex items-center gap-2"><Scissors className="h-3.5 w-3.5" /> {mockServices.find((s) => s.id === selectedService)?.name}</p>
+                  <p className="text-muted-foreground flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> {mockServices.find((s) => s.id === selectedService)?.name}</p>
                   <p className="text-muted-foreground flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5" /> {format(selectedDate!, "dd/MM/yyyy")}</p>
                   <p className="text-muted-foreground flex items-center gap-2"><Clock className="h-3.5 w-3.5" /> {selectedTime}</p>
                 </div>

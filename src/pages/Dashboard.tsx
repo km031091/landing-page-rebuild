@@ -9,14 +9,10 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { CalendarDays, Clock, User, Scissors, X, Pencil, Crown, AlertTriangle } from "lucide-react";
+import { CalendarDays, Clock, User, Sparkles, X, Pencil, Crown, AlertTriangle } from "lucide-react";
 import { getTrialDaysRemaining, getSubscriptionStatus } from "@/lib/subscription";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,7 +63,6 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      {/* Trial/Subscription Banner */}
       {subscriptionStatus === "trial" && (
         <div className="glass-card p-4 mb-6 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
@@ -130,7 +125,7 @@ const Dashboard = () => {
                       <User className="h-3.5 w-3.5" /> {a.clientName}
                     </p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <Scissors className="h-3 w-3" /> {a.serviceName}
+                      <Sparkles className="h-3 w-3" /> {a.serviceName}
                     </p>
                   </div>
                 </div>
@@ -153,7 +148,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Edit Dialog */}
       <Dialog open={!!editingId} onOpenChange={() => setEditingId(null)}>
         <DialogContent>
           <DialogHeader>
