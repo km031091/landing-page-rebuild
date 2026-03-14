@@ -28,7 +28,7 @@ const Subscription = () => {
 
   return (
     <DashboardLayout>
-      <h1 className="text-2xl font-bold text-foreground mb-2">Plano AgendaBeauty</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-2">Plano CutNow</h1>
       <p className="text-muted-foreground mb-6">Gerencie seu negócio de beleza de forma profissional</p>
 
       {status === "trial" && (
