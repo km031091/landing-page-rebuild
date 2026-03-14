@@ -33,7 +33,7 @@ const Landing = () => {
       {/* Hero */}
       <section className="flex flex-col items-center justify-center px-4 pt-20 pb-16 text-center">
         <h1 className="text-4xl md:text-6xl font-bold mb-4">
-          <span className="text-gradient-gold">AgendaBeauty</span>
+          <span className="text-gradient-gold">CutNow</span>
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-8">
           A plataforma completa de agendamento para barbearias, salões de beleza, studios e profissionais da área de beleza.
