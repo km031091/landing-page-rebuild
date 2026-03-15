@@ -1,14 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
-import { mockServices, mockAppointments, availableTimes, type Appointment } from "@/lib/mock-data";
+import { availableTimes } from "@/lib/mock-data";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Check, Sparkles, CalendarDays, Clock, User, Search, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+
+interface Service {
+  id: string;
+  name: string;
+  duration: number;
+  price?: number;
+  category?: string;
+  user_id: string;
+}
+
+interface Appointment {
+  id: string;
+  client_name: string;
+  service_name: string;
+  date: string;
+  time: string;
+  status: string;
+}
 
 type ViewMode = "home" | "booking" | "manage";
 
@@ -20,11 +39,36 @@ const PublicBooking = () => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [searchName, setSearchName] = useState("");
   const [foundAppointments, setFoundAppointments] = useState<Appointment[]>([]);
   const [searched, setSearched] = useState(false);
-  const [allAppointments, setAllAppointments] = useState(mockAppointments);
+  const [services, setServices] = useState<Service[]>([]);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState("");
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!slug) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, business_name")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (profile) {
+        setOwnerId(profile.id);
+        setBusinessName(profile.business_name);
+        const { data: svcs } = await supabase
+          .from("services")
+          .select("*")
+          .eq("user_id", profile.id)
+          .order("name");
+        if (svcs) setServices(svcs);
+      }
+    };
+    loadProfile();
+  }, [slug]);
 
   const resetBooking = () => {
     setStep(1);
@@ -32,39 +76,49 @@ const PublicBooking = () => {
     setSelectedDate(undefined);
     setSelectedTime(null);
     setClientName("");
+    setClientPhone("");
     setConfirmed(false);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!clientName.trim()) {
       toast.error("Digite seu nome");
       return;
     }
-    const service = mockServices.find((s) => s.id === selectedService);
-    const newAppt: Appointment = {
-      id: String(Date.now()),
-      clientName: clientName.trim(),
-      serviceId: selectedService!,
-      serviceName: service?.name || "",
+    if (!ownerId) return;
+    const service = services.find((s) => s.id === selectedService);
+    const { error } = await supabase.from("appointments").insert({
+      user_id: ownerId,
+      client_name: clientName.trim(),
+      client_phone: clientPhone || null,
+      service_id: selectedService,
+      service_name: service?.name || "",
       date: format(selectedDate!, "yyyy-MM-dd"),
-      time: selectedTime!,
+      time: selectedTime,
       status: "confirmed",
-    };
-    setAllAppointments((prev) => [...prev, newAppt]);
+    });
+    if (error) {
+      toast.error("Erro ao agendar. Tente novamente.");
+      return;
+    }
     setConfirmed(true);
     toast.success("Agendamento confirmado!");
   };
 
-  const handleSearch = () => {
-    const results = allAppointments.filter(
-      (a) => a.clientName.toLowerCase().includes(searchName.toLowerCase()) && a.status === "confirmed"
-    );
-    setFoundAppointments(results);
+  const handleSearch = async () => {
+    if (!ownerId || !searchName.trim()) return;
+    const { data } = await supabase
+      .from("appointments")
+      .select("*")
+      .eq("user_id", ownerId)
+      .eq("status", "confirmed")
+      .ilike("client_name", `%${searchName}%`);
+    setFoundAppointments(data || []);
     setSearched(true);
   };
 
-  const handleCancelAppointment = (id: string) => {
-    setAllAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: "cancelled" as const } : a)));
+  const handleCancelAppointment = async (id: string) => {
+    await supabase.from("appointments").update({ status: "cancelled" }).eq("id", id);
     setFoundAppointments((prev) => prev.filter((a) => a.id !== id));
     toast.success("Agendamento cancelado");
   };
@@ -74,7 +128,7 @@ const PublicBooking = () => {
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="w-full max-w-sm text-center">
           <h1 className="text-3xl font-bold text-gradient-gold mb-2">CutNow</h1>
-          <p className="text-muted-foreground mb-8">{slug?.replace(/-/g, " ") || "Espaço de Beleza"}</p>
+          <p className="text-muted-foreground mb-8">{businessName || slug?.replace(/-/g, " ") || "Espaço de Beleza"}</p>
           <div className="space-y-3">
             <Button onClick={() => { resetBooking(); setViewMode("booking"); }} className="w-full bg-gradient-gold text-primary-foreground font-semibold py-6 text-base">
               <CalendarDays className="mr-2 h-5 w-5" /> Agendar horário
@@ -106,7 +160,7 @@ const PublicBooking = () => {
           {foundAppointments.map((a) => (
             <div key={a.id} className="glass-card p-4 mb-3 flex justify-between items-center">
               <div>
-                <p className="text-sm font-medium text-foreground">{a.serviceName}</p>
+                <p className="text-sm font-medium text-foreground">{a.service_name}</p>
                 <p className="text-xs text-muted-foreground">{a.date} às {a.time}</p>
               </div>
               <Button variant="ghost" size="sm" className="text-destructive text-xs" onClick={() => handleCancelAppointment(a.id)}>
@@ -131,7 +185,7 @@ const PublicBooking = () => {
             <Check className="mx-auto h-12 w-12 text-primary mb-4" />
             <h2 className="text-xl font-bold text-foreground mb-2">Confirmado!</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              {mockServices.find((s) => s.id === selectedService)?.name} — {format(selectedDate!, "dd/MM/yyyy")} às {selectedTime}
+              {services.find((s) => s.id === selectedService)?.name} — {format(selectedDate!, "dd/MM/yyyy")} às {selectedTime}
             </p>
             <Button onClick={() => setViewMode("home")} className="bg-gradient-gold text-primary-foreground">Voltar ao início</Button>
           </div>
@@ -147,7 +201,7 @@ const PublicBooking = () => {
               <div>
                 <h2 className="text-lg font-bold text-foreground mb-4">Escolha o serviço</h2>
                 <div className="space-y-2">
-                  {mockServices.map((s) => (
+                  {services.map((s) => (
                     <button
                       key={s.id}
                       onClick={() => { setSelectedService(s.id); setStep(2); }}
@@ -163,6 +217,9 @@ const PublicBooking = () => {
                       {s.price && <span className="text-sm text-primary font-semibold">R${s.price}</span>}
                     </button>
                   ))}
+                  {services.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum serviço disponível.</p>
+                  )}
                 </div>
               </div>
             )}
@@ -203,15 +260,21 @@ const PublicBooking = () => {
 
             {step === 4 && (
               <div>
-                <h2 className="text-lg font-bold text-foreground mb-4">Seu nome</h2>
+                <h2 className="text-lg font-bold text-foreground mb-4">Seus dados</h2>
                 <Input
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
-                  placeholder="Digite seu nome"
+                  placeholder="Seu nome"
+                  className="mb-3"
+                />
+                <Input
+                  value={clientPhone}
+                  onChange={(e) => setClientPhone(e.target.value)}
+                  placeholder="Telefone (opcional)"
                   className="mb-4"
                 />
                 <div className="glass-card p-4 mb-4 text-sm space-y-1">
-                  <p className="text-muted-foreground flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> {mockServices.find((s) => s.id === selectedService)?.name}</p>
+                  <p className="text-muted-foreground flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> {services.find((s) => s.id === selectedService)?.name}</p>
                   <p className="text-muted-foreground flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5" /> {format(selectedDate!, "dd/MM/yyyy")}</p>
                   <p className="text-muted-foreground flex items-center gap-2"><Clock className="h-3.5 w-3.5" /> {selectedTime}</p>
                 </div>

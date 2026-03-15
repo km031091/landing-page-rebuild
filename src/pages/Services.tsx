@@ -1,23 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { mockServices, type Service } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Trash2, Clock, DollarSign, Tag } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface Service {
+  id: string;
+  name: string;
+  duration: number;
+  price?: number;
+  category?: string;
+}
 
 const Services = () => {
-  const [services, setServices] = useState<Service[]>(mockServices);
+  const { user } = useAuth();
+  const [services, setServices] = useState<Service[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Service | null>(null);
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
+
+  useEffect(() => {
+    if (user) fetchServices();
+  }, [user]);
+
+  const fetchServices = async () => {
+    const { data } = await supabase
+      .from("services")
+      .select("*")
+      .eq("user_id", user!.id)
+      .order("created_at");
+    if (data) setServices(data);
+  };
 
   const openNew = () => {
     setEditing(null);
@@ -37,31 +58,32 @@ const Services = () => {
     setDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name || !duration) {
       toast.error("Preencha nome e duração");
       return;
     }
     if (editing) {
-      setServices((prev) =>
-        prev.map((s) =>
-          s.id === editing.id
-            ? { ...s, name, duration: Number(duration), price: price ? Number(price) : undefined, category: category || undefined }
-            : s
-        )
-      );
+      await supabase.from("services").update({
+        name, duration: Number(duration),
+        price: price ? Number(price) : null,
+        category: category || null,
+      }).eq("id", editing.id);
       toast.success("Serviço atualizado");
     } else {
-      setServices((prev) => [
-        ...prev,
-        { id: String(Date.now()), name, duration: Number(duration), price: price ? Number(price) : undefined, category: category || undefined },
-      ]);
+      await supabase.from("services").insert({
+        user_id: user!.id, name, duration: Number(duration),
+        price: price ? Number(price) : null,
+        category: category || null,
+      });
       toast.success("Serviço criado");
     }
     setDialogOpen(false);
+    fetchServices();
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    await supabase.from("services").delete().eq("id", id);
     setServices((prev) => prev.filter((s) => s.id !== id));
     toast.success("Serviço removido");
   };
@@ -96,6 +118,9 @@ const Services = () => {
             </div>
           </div>
         ))}
+        {services.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">Nenhum serviço cadastrado. Clique em "Novo" para começar.</p>
+        )}
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
