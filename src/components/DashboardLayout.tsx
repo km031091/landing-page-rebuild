@@ -4,6 +4,7 @@ import { CalendarDays, Sparkles, BarChart3, LogOut, Link2, Crown } from "lucide-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { label: "Agenda", icon: CalendarDays, path: "/dashboard" },
@@ -15,15 +16,17 @@ const navItems = [
 const DashboardLayout = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { signOut, profile } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem("beauty_logged_in");
+  const handleLogout = async () => {
+    await signOut();
     toast.success("Desconectado");
     navigate("/login");
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/agendar/meu-espaco`);
+    const slug = profile?.slug || "meu-espaco";
+    navigator.clipboard.writeText(`${window.location.origin}/agendar/${slug}`);
     toast.success("Link copiado!");
   };
 

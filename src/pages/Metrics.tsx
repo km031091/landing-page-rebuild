@@ -1,19 +1,43 @@
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { mockAppointments, mockServices } from "@/lib/mock-data";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { CalendarDays, Users, Scissors, Clock } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
 const COLORS = ["hsl(38,80%,55%)", "hsl(38,70%,70%)", "hsl(38,90%,40%)", "hsl(30,8%,40%)"];
 
 const Metrics = () => {
-  const confirmed = mockAppointments.filter((a) => a.status === "confirmed");
-  const totalAppointments = confirmed.length;
-  const uniqueClients = new Set(confirmed.map((a) => a.clientName)).size;
+  const { user } = useAuth();
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [serviceCount, setServiceCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { data: appts } = await supabase
+        .from("appointments")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "confirmed");
+      if (appts) setAppointments(appts);
+
+      const { count } = await supabase
+        .from("services")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      setServiceCount(count || 0);
+    };
+    load();
+  }, [user]);
+
+  const totalAppointments = appointments.length;
+  const uniqueClients = new Set(appointments.map((a) => a.client_name)).size;
 
   const serviceCounts: Record<string, number> = {};
-  confirmed.forEach((a) => {
-    serviceCounts[a.serviceName] = (serviceCounts[a.serviceName] || 0) + 1;
+  appointments.forEach((a) => {
+    serviceCounts[a.service_name] = (serviceCounts[a.service_name] || 0) + 1;
   });
   const serviceData = Object.entries(serviceCounts)
     .map(([name, value]) => ({ name, value }))
@@ -22,7 +46,7 @@ const Metrics = () => {
   const topService = serviceData[0]?.name || "-";
 
   const hourCounts: Record<string, number> = {};
-  confirmed.forEach((a) => {
+  appointments.forEach((a) => {
     const hour = a.time.split(":")[0] + ":00";
     hourCounts[hour] = (hourCounts[hour] || 0) + 1;
   });
@@ -34,7 +58,7 @@ const Metrics = () => {
     { label: "Total de agendamentos", value: totalAppointments, icon: CalendarDays },
     { label: "Clientes atendidos", value: uniqueClients, icon: Users },
     { label: "Serviço mais popular", value: topService, icon: Scissors },
-    { label: "Total de serviços", value: mockServices.length, icon: Clock },
+    { label: "Total de serviços", value: serviceCount, icon: Clock },
   ];
 
   return (

@@ -1,10 +1,11 @@
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Zap } from "lucide-react";
-import { getTrialDaysRemaining, getSubscriptionStatus, activateSubscription } from "@/lib/subscription";
 import { toast } from "sonner";
-import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
 const features = [
   "Agendamentos ilimitados",
@@ -17,11 +18,34 @@ const features = [
 ];
 
 const Subscription = () => {
-  const [status, setStatus] = useState(getSubscriptionStatus());
-  const daysRemaining = getTrialDaysRemaining();
+  const { user } = useAuth();
+  const [status, setStatus] = useState("trial");
+  const [daysRemaining, setDaysRemaining] = useState(3);
 
-  const handleSubscribe = () => {
-    activateSubscription();
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        let s = data.status;
+        if (s === "trial" && data.trial_start) {
+          const elapsed = Math.floor((Date.now() - new Date(data.trial_start).getTime()) / (1000 * 60 * 60 * 24));
+          setDaysRemaining(Math.max(0, 3 - elapsed));
+          if (elapsed >= 3) s = "expired";
+        }
+        setStatus(s);
+      }
+    };
+    load();
+  }, [user]);
+
+  const handleSubscribe = async () => {
+    if (!user) return;
+    await supabase.from("subscriptions").update({ status: "active", paid_at: new Date().toISOString() }).eq("user_id", user.id);
     setStatus("active");
     toast.success("Assinatura ativada com sucesso!");
   };
@@ -46,7 +70,7 @@ const Subscription = () => {
       {status === "expired" && (
         <div className="glass-card p-4 mb-6 border-destructive">
           <Badge variant="destructive" className="mb-2">Expirado</Badge>
-          <p className="text-sm text-muted-foreground">Seu período de teste encerrou. Assine para continuar recebendo agendamentos.</p>
+          <p className="text-sm text-muted-foreground">Seu período de teste encerrou. Assine para continuar.</p>
         </div>
       )}
 

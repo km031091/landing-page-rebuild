@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
-import { mockAppointments } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Progress } from "@/components/ui/progress";
@@ -10,34 +9,74 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CalendarDays, Clock, User, Sparkles, X, Pencil, Crown, AlertTriangle } from "lucide-react";
-import { getTrialDaysRemaining, getSubscriptionStatus } from "@/lib/subscription";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface Appointment {
+  id: string;
+  client_name: string;
+  service_name: string;
+  date: string;
+  time: string;
+  status: string;
+}
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [appointments, setAppointments] = useState(mockAppointments);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTime, setEditTime] = useState("");
   const [editName, setEditName] = useState("");
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("trial");
+  const [trialDaysRemaining, setTrialDaysRemaining] = useState(3);
 
-  const subscriptionStatus = getSubscriptionStatus();
-  const trialDaysRemaining = getTrialDaysRemaining();
+  useEffect(() => {
+    if (!user) return;
+    fetchAppointments();
+    fetchSubscription();
+  }, [user]);
+
+  const fetchAppointments = async () => {
+    const { data } = await supabase
+      .from("appointments")
+      .select("*")
+      .eq("user_id", user!.id)
+      .order("time");
+    if (data) setAppointments(data);
+  };
+
+  const fetchSubscription = async () => {
+    const { data } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("user_id", user!.id)
+      .maybeSingle();
+    if (data) {
+      setSubscriptionStatus(data.status);
+      if (data.status === "trial" && data.trial_start) {
+        const start = new Date(data.trial_start);
+        const now = new Date();
+        const elapsed = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        setTrialDaysRemaining(Math.max(0, 3 - elapsed));
+        if (elapsed >= 3) setSubscriptionStatus("expired");
+      }
+    }
+  };
+
   const trialProgress = ((3 - trialDaysRemaining) / 3) * 100;
-
   const dateStr = format(selectedDate, "yyyy-MM-dd");
   const dayAppointments = appointments
     .filter((a) => a.date === dateStr)
     .sort((a, b) => a.time.localeCompare(b.time));
 
-  const handleCancel = (id: string) => {
-    setAppointments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: "cancelled" as const } : a))
-    );
+  const handleCancel = async (id: string) => {
+    await supabase.from("appointments").update({ status: "cancelled" }).eq("id", id);
+    setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: "cancelled" } : a)));
     toast.success("Agendamento cancelado");
   };
 
@@ -46,16 +85,15 @@ const Dashboard = () => {
     if (appt) {
       setEditingId(id);
       setEditTime(appt.time);
-      setEditName(appt.clientName);
+      setEditName(appt.client_name);
     }
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingId) return;
+    await supabase.from("appointments").update({ time: editTime, client_name: editName }).eq("id", editingId);
     setAppointments((prev) =>
-      prev.map((a) =>
-        a.id === editingId ? { ...a, time: editTime, clientName: editName } : a
-      )
+      prev.map((a) => (a.id === editingId ? { ...a, time: editTime, client_name: editName } : a))
     );
     setEditingId(null);
     toast.success("Agendamento atualizado");
@@ -111,21 +149,15 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground">Nenhum agendamento neste dia.</p>
           ) : (
             dayAppointments.map((a) => (
-              <div
-                key={a.id}
-                className={cn(
-                  "glass-card p-4 flex items-center justify-between",
-                  a.status === "cancelled" && "opacity-50"
-                )}
-              >
+              <div key={a.id} className={cn("glass-card p-4 flex items-center justify-between", a.status === "cancelled" && "opacity-50")}>
                 <div className="flex items-center gap-4">
                   <div className="text-primary font-mono text-sm font-bold">{a.time}</div>
                   <div>
                     <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                      <User className="h-3.5 w-3.5" /> {a.clientName}
+                      <User className="h-3.5 w-3.5" /> {a.client_name}
                     </p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <Sparkles className="h-3 w-3" /> {a.serviceName}
+                      <Sparkles className="h-3 w-3" /> {a.service_name}
                     </p>
                   </div>
                 </div>
@@ -139,9 +171,7 @@ const Dashboard = () => {
                     </Button>
                   </div>
                 )}
-                {a.status === "cancelled" && (
-                  <span className="text-xs text-destructive">Cancelado</span>
-                )}
+                {a.status === "cancelled" && <span className="text-xs text-destructive">Cancelado</span>}
               </div>
             ))
           )}

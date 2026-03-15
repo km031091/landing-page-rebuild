@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 const segments = [
   { value: "barbearia", label: "Barbearia" },
@@ -20,16 +21,39 @@ const Register = () => {
   const [segment, setSegment] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (name && email && password && segment) {
-      localStorage.setItem("beauty_logged_in", "true");
-      localStorage.setItem("beauty_segment", segment);
+    if (!name || !email || !password || !segment) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+    setLoading(true);
+    const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { business_name: name, segment },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    setLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      // Update slug after profile is auto-created
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("profiles").update({ slug }).eq("id", user.id);
+        // Create subscription entry
+        await supabase.from("subscriptions").insert({ user_id: user.id, status: "trial" });
+      }
       toast.success("Conta criada com sucesso! Você tem 3 dias de teste grátis.");
       navigate("/dashboard");
-    } else {
-      toast.error("Preencha todos os campos");
     }
   };
 
@@ -65,8 +89,8 @@ const Register = () => {
             <Label htmlFor="password">Senha</Label>
             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1" />
           </div>
-          <Button type="submit" className="w-full bg-gradient-gold text-primary-foreground font-semibold">
-            Começar teste grátis
+          <Button type="submit" disabled={loading} className="w-full bg-gradient-gold text-primary-foreground font-semibold">
+            {loading ? "Criando..." : "Começar teste grátis"}
           </Button>
         </form>
 
