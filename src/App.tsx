@@ -13,31 +13,36 @@ import Services from "./pages/Services";
 import Metrics from "./pages/Metrics";
 import PublicBooking from "./pages/PublicBooking";
 import Subscription from "./pages/Subscription";
+import SettingsPage from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/dashboard/services" element={<ProtectedRoute><Services /></ProtectedRoute>} />
-            <Route path="/dashboard/metrics" element={<ProtectedRoute><Metrics /></ProtectedRoute>} />
-            <Route path="/dashboard/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
-            <Route path="/agendar/:slug" element={<PublicBooking />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard/services" element={<ProtectedRoute><Services /></ProtectedRoute>} />
+              <Route path="/dashboard/metrics" element={<ProtectedRoute><Metrics /></ProtectedRoute>} />
+              <Route path="/dashboard/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
+              <Route path="/dashboard/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/agendar/:slug" element={<PublicBooking />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

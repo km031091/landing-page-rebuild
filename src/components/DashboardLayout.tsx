@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { CalendarDays, Sparkles, BarChart3, LogOut, Link2, Crown } from "lucide-react";
+import { CalendarDays, Sparkles, BarChart3, LogOut, Crown, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ const navItems = [
   { label: "Serviços", icon: Sparkles, path: "/dashboard/services" },
   { label: "Métricas", icon: BarChart3, path: "/dashboard/metrics" },
   { label: "Assinatura", icon: Crown, path: "/dashboard/subscription" },
+  { label: "Config", icon: Settings, path: "/dashboard/settings" },
 ];
 
 const DashboardLayout = ({ children }: { children: ReactNode }) => {
@@ -24,11 +25,6 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
     navigate("/login");
   };
 
-  const handleCopyLink = () => {
-    const slug = profile?.slug || "meu-espaco";
-    navigator.clipboard.writeText(`${window.location.origin}/agendar/${slug}`);
-    toast.success("Link copiado!");
-  };
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -50,9 +46,6 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
           </Link>
         ))}
         <div className="mt-auto space-y-1">
-          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={handleCopyLink}>
-            <Link2 className="h-4 w-4 mr-2" /> Copiar link
-          </Button>
           <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" /> Sair
           </Button>
