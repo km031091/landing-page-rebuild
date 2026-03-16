@@ -47,6 +47,7 @@ const PublicBooking = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
