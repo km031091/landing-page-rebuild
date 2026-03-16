@@ -76,11 +76,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfile(null);
   };
 
-  return (
-    const refreshProfile = async () => {
-      if (session?.user) await fetchProfile(session.user.id);
-    };
+  const refreshProfile = async () => {
+    if (session?.user) await fetchProfile(session.user.id);
+  };
 
+  return (
     <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, loading, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
