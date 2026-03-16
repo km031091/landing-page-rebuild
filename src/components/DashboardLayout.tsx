@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { CalendarDays, Sparkles, BarChart3, LogOut, Link2, Crown } from "lucide-react";
+import { CalendarDays, Sparkles, BarChart3, LogOut, Crown, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
