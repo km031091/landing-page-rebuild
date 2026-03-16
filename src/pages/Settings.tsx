@@ -19,10 +19,10 @@ const Settings = () => {
   const { theme, toggleTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [editEmail, setEditEmail] = useState(false);
-  const [editPhone, setEditPhone] = useState(false);
-  const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState(profile?.phone || "");
+  const [newBusinessName, setNewBusinessName] = useState(profile?.business_name || "");
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const handleShareLink = () => {
