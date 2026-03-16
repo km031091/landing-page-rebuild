@@ -11,6 +11,7 @@ const navItems = [
   { label: "Serviços", icon: Sparkles, path: "/dashboard/services" },
   { label: "Métricas", icon: BarChart3, path: "/dashboard/metrics" },
   { label: "Assinatura", icon: Crown, path: "/dashboard/subscription" },
+  { label: "Config", icon: Settings, path: "/dashboard/settings" },
 ];
 
 const DashboardLayout = ({ children }: { children: ReactNode }) => {
