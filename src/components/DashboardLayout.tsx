@@ -25,11 +25,6 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
     navigate("/login");
   };
 
-  const handleCopyLink = () => {
-    const slug = profile?.slug || "meu-espaco";
-    navigator.clipboard.writeText(`${window.location.origin}/agendar/${slug}`);
-    toast.success("Link copiado!");
-  };
 
   return (
     <div className="min-h-screen flex bg-background">
