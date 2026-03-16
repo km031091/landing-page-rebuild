@@ -129,7 +129,11 @@ const PublicBooking = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="w-full max-w-sm text-center">
-          <h1 className="text-3xl font-bold text-gradient-gold mb-2">CutNow</h1>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={businessName} className="h-20 w-20 rounded-full object-cover mx-auto mb-4 border-2 border-border" />
+          ) : (
+            <h1 className="text-3xl font-bold text-gradient-gold mb-2">CutNow</h1>
+          )}
           <p className="text-muted-foreground mb-8">{businessName || slug?.replace(/-/g, " ") || "Espaço de Beleza"}</p>
           <div className="space-y-3">
             <Button onClick={() => { resetBooking(); setViewMode("booking"); }} className="w-full bg-gradient-gold text-primary-foreground font-semibold py-6 text-base">

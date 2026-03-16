@@ -51,9 +51,6 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
           </Link>
         ))}
         <div className="mt-auto space-y-1">
-          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={handleCopyLink}>
-            <Link2 className="h-4 w-4 mr-2" /> Copiar link
-          </Button>
           <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" /> Sair
           </Button>
