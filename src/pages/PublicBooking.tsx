@@ -54,12 +54,13 @@ const PublicBooking = () => {
       if (!slug) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("id, business_name")
+        .select("id, business_name, avatar_url")
         .eq("slug", slug)
         .maybeSingle();
       if (profile) {
         setOwnerId(profile.id);
         setBusinessName(profile.business_name);
+        setAvatarUrl(profile.avatar_url);
         const { data: svcs } = await supabase
           .from("services")
           .select("*")
