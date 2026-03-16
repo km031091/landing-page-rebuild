@@ -13,7 +13,9 @@ import Services from "./pages/Services";
 import Metrics from "./pages/Metrics";
 import PublicBooking from "./pages/PublicBooking";
 import Subscription from "./pages/Subscription";
+import SettingsPage from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const queryClient = new QueryClient();
 
