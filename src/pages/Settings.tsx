@@ -16,8 +16,9 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useNavigate } from "react-router-dom";
 
 const Settings = () => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [editEmail, setEditEmail] = useState(false);
@@ -25,6 +26,7 @@ const Settings = () => {
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState(profile?.phone || "");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleShareLink = () => {
     const slug = profile?.slug || "meu-espaco";
