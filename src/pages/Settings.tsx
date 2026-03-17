@@ -8,15 +8,17 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Camera, Share2, Mail, Phone, Trash2, Sun, Moon, Store } from "lucide-react";
+import { Camera, Share2, Mail, Phone, Trash2, Sun, Moon, Store, LogOut, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useNavigate } from "react-router-dom";
 
 const Settings = () => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [editEmail, setEditEmail] = useState(false);
@@ -24,6 +26,7 @@ const Settings = () => {
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState(profile?.phone || "");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleShareLink = () => {
     const slug = profile?.slug || "meu-espaco";
@@ -86,8 +89,27 @@ const Settings = () => {
   };
 
   const handleDeleteAccount = async () => {
-    toast.error("Para excluir sua conta, entre em contato com o suporte.");
-    setDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-account");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Conta excluída com sucesso.");
+      await signOut();
+      navigate("/login");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao excluir conta. Tente novamente.");
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    toast.success("Desconectado");
+    navigate("/login");
   };
 
   return (
@@ -188,6 +210,15 @@ const Settings = () => {
           </CardContent>
         </Card>
 
+        {/* Logout - visible on mobile */}
+        <Card className="md:hidden">
+          <CardContent className="pt-6">
+            <Button variant="ghost" className="w-full text-muted-foreground" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" /> Sair
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Delete Account */}
         <Card className="border-destructive/30">
           <CardContent className="pt-6">
@@ -239,8 +270,10 @@ const Settings = () => {
             <DialogDescription>Essa ação é irreversível. Todos os seus dados serão perdidos.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirm(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleDeleteAccount}>Excluir</Button>
+            <Button variant="outline" onClick={() => setDeleteConfirm(false)} disabled={deleting}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteAccount} disabled={deleting}>
+              {deleting ? <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Excluindo...</> : "Excluir"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
