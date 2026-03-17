@@ -8,11 +8,12 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Camera, Share2, Mail, Phone, Trash2, Sun, Moon, Store } from "lucide-react";
+import { Camera, Share2, Mail, Phone, Trash2, Sun, Moon, Store, LogOut, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useNavigate } from "react-router-dom";
 
 const Settings = () => {
   const { user, profile, refreshProfile } = useAuth();
