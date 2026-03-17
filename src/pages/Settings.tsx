@@ -210,6 +210,15 @@ const Settings = () => {
           </CardContent>
         </Card>
 
+        {/* Logout - visible on mobile */}
+        <Card className="md:hidden">
+          <CardContent className="pt-6">
+            <Button variant="ghost" className="w-full text-muted-foreground" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" /> Sair
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Delete Account */}
         <Card className="border-destructive/30">
           <CardContent className="pt-6">
