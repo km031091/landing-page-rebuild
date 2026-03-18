@@ -76,7 +76,7 @@ const Subscription = () => {
   }, [searchParams]);
 
   const handleSubscribe = () => {
-    window.open("https://buy.stripe.com/SEU_LINK_AQUI", "_blank");
+    window.open("https://buy.stripe.com/8x200k81r3Fi9G1fNycQU00", "_blank");
   };
 
   const handleManageSubscription = async () => {
