@@ -281,8 +281,10 @@ const Settings = () => {
             <DialogDescription>Essa ação é irreversível. Todos os seus dados serão perdidos.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirm(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleDeleteAccount}>Excluir</Button>
+            <Button variant="outline" onClick={() => setDeleteConfirm(false)} disabled={deleting}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteAccount} disabled={deleting}>
+              {deleting ? "Excluindo..." : "Excluir"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
