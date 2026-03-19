@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,12 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Camera, Share2, Mail, Phone, Trash2, Sun, Moon, Store } from "lucide-react";
+import { Camera, Share2, Mail, Phone, Trash2, Sun, Moon, Store, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import BusinessHoursCard, { DEFAULT_HOURS, type BusinessHours } from "@/components/settings/BusinessHoursCard";
 
 const Settings = () => {
   const { user, profile, refreshProfile } = useAuth();
@@ -21,9 +22,27 @@ const Settings = () => {
   const [uploading, setUploading] = useState(false);
   const [editEmail, setEditEmail] = useState(false);
   const [editPhone, setEditPhone] = useState(false);
+  const [editName, setEditName] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState(profile?.phone || "");
+  const [newName, setNewName] = useState(profile?.business_name || "");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [businessHours, setBusinessHours] = useState<BusinessHours>(DEFAULT_HOURS);
+
+  useEffect(() => {
+    if (!user) return;
+    const loadHours = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("business_hours")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (data?.business_hours) {
+        setBusinessHours(data.business_hours as BusinessHours);
+      }
+    };
+    loadHours();
+  }, [user]);
 
   const handleShareLink = () => {
     const slug = profile?.slug || "meu-espaco";
@@ -39,28 +58,17 @@ const Settings = () => {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-
     setUploading(true);
     const ext = file.name.split(".").pop();
     const path = `${user.id}/logo.${ext}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("logos")
-      .upload(path, file, { upsert: true });
-
+    const { error: uploadError } = await supabase.storage.from("logos").upload(path, file, { upsert: true });
     if (uploadError) {
       toast.error("Erro ao enviar logo. Verifique se o bucket 'logos' existe.");
       setUploading(false);
       return;
     }
-
     const { data: urlData } = supabase.storage.from("logos").getPublicUrl(path);
-
-    await supabase
-      .from("profiles")
-      .update({ avatar_url: urlData.publicUrl })
-      .eq("id", user.id);
-
+    await supabase.from("profiles").update({ avatar_url: urlData.publicUrl }).eq("id", user.id);
     await refreshProfile();
     toast.success("Logo atualizado!");
     setUploading(false);
@@ -69,12 +77,8 @@ const Settings = () => {
   const handleUpdateEmail = async () => {
     if (!newEmail.trim()) return;
     const { error } = await supabase.auth.updateUser({ email: newEmail });
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("E-mail de confirmação enviado para o novo endereço.");
-      setEditEmail(false);
-    }
+    if (error) toast.error(error.message);
+    else { toast.success("E-mail de confirmação enviado para o novo endereço."); setEditEmail(false); }
   };
 
   const handleUpdatePhone = async () => {
@@ -83,6 +87,14 @@ const Settings = () => {
     await refreshProfile();
     toast.success("Telefone atualizado!");
     setEditPhone(false);
+  };
+
+  const handleUpdateName = async () => {
+    if (!user || !newName.trim()) return;
+    await supabase.from("profiles").update({ business_name: newName.trim() }).eq("id", user.id);
+    await refreshProfile();
+    toast.success("Nome do negócio atualizado!");
+    setEditName(false);
   };
 
   const handleDeleteAccount = async () => {
@@ -116,20 +128,28 @@ const Settings = () => {
               <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                 <Camera className="h-6 w-6 text-foreground" />
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleLogoUpload}
-              />
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
             </div>
-            <p className="text-sm text-muted-foreground">
-              {uploading ? "Enviando..." : "Toque para alterar o logo"}
-            </p>
-            <p className="text-lg font-semibold text-foreground">{profile?.business_name}</p>
+            <p className="text-sm text-muted-foreground">{uploading ? "Enviando..." : "Toque para alterar o logo"}</p>
+
+            {/* Business Name */}
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-semibold text-foreground">{profile?.business_name}</p>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setNewName(profile?.business_name || ""); setEditName(true); }}>
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
+
+        {/* Business Hours */}
+        {user && (
+          <BusinessHoursCard
+            userId={user.id}
+            initialHours={businessHours}
+            onSaved={refreshProfile}
+          />
+        )}
 
         {/* Share Link */}
         <Card>
@@ -140,7 +160,7 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Email */}
+        {/* Email & Phone */}
         <Card>
           <CardContent className="pt-6 space-y-3">
             <div className="flex items-center justify-between">
@@ -151,13 +171,9 @@ const Settings = () => {
                   <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => { setNewEmail(user?.email || ""); setEditEmail(true); }}>
-                Alterar
-              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { setNewEmail(user?.email || ""); setEditEmail(true); }}>Alterar</Button>
             </div>
-
             <Separator />
-
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-muted-foreground" />
@@ -166,9 +182,7 @@ const Settings = () => {
                   <p className="text-xs text-muted-foreground">{profile?.phone || "Não informado"}</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => { setNewPhone(profile?.phone || ""); setEditPhone(true); }}>
-                Alterar
-              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { setNewPhone(profile?.phone || ""); setEditPhone(true); }}>Alterar</Button>
             </div>
           </CardContent>
         </Card>
@@ -179,9 +193,7 @@ const Settings = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {theme === "dark" ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
-                <p className="text-sm font-medium text-foreground">
-                  {theme === "dark" ? "Modo escuro" : "Modo claro"}
-                </p>
+                <p className="text-sm font-medium text-foreground">{theme === "dark" ? "Modo escuro" : "Modo claro"}</p>
               </div>
               <Switch checked={theme === "light"} onCheckedChange={toggleTheme} />
             </div>
@@ -197,6 +209,22 @@ const Settings = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Name Dialog */}
+      <Dialog open={editName} onOpenChange={setEditName}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar nome do negócio</DialogTitle>
+          </DialogHeader>
+          <div>
+            <Label>Nome do negócio</Label>
+            <Input value={newName} onChange={(e) => setNewName(e.target.value)} className="mt-1" />
+          </div>
+          <DialogFooter>
+            <Button onClick={handleUpdateName} className="bg-gradient-gold text-primary-foreground">Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Email Dialog */}
       <Dialog open={editEmail} onOpenChange={setEditEmail}>

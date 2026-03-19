@@ -66,6 +66,13 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
             {item.label}
           </Link>
         ))}
+        <button
+          onClick={handleLogout}
+          className="flex flex-col items-center gap-0.5 text-xs text-muted-foreground"
+        >
+          <LogOut className="h-5 w-5" />
+          Sair
+        </button>
       </nav>
 
       <main className="flex-1 p-4 md:p-8 pb-20 md:pb-8 overflow-auto">{children}</main>
