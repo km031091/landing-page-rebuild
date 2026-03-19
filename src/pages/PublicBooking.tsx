@@ -1,15 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
-import { availableTimes } from "@/lib/mock-data";
-import { format } from "date-fns";
+import { format, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Check, Sparkles, CalendarDays, Clock, User, Search, ArrowLeft } from "lucide-react";
+import { Check, Sparkles, CalendarDays, Clock, Search, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import type { BusinessHours, DaySchedule } from "@/components/settings/BusinessHoursCard";
 
 interface Service {
   id: string;
@@ -31,6 +31,25 @@ interface Appointment {
 
 type ViewMode = "home" | "booking" | "manage";
 
+// Map JS getDay (0=Sun) to our keys
+const DAY_KEY_MAP = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
+function generateTimesFromSchedule(schedule: DaySchedule): string[] {
+  if (!schedule.enabled) return [];
+  const times: string[] = [];
+  const [oh, om] = schedule.open.split(":").map(Number);
+  const [ch, cm] = schedule.close.split(":").map(Number);
+  let cur = oh * 60 + om;
+  const end = ch * 60 + cm;
+  while (cur < end) {
+    const h = Math.floor(cur / 60);
+    const m = cur % 60;
+    times.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    cur += 30;
+  }
+  return times;
+}
+
 const PublicBooking = () => {
   const { slug } = useParams();
   const [viewMode, setViewMode] = useState<ViewMode>("home");
@@ -48,19 +67,21 @@ const PublicBooking = () => {
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [businessHours, setBusinessHours] = useState<BusinessHours | null>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
       if (!slug) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("id, business_name, avatar_url")
+        .select("id, business_name, avatar_url, business_hours")
         .eq("slug", slug)
         .maybeSingle();
       if (profile) {
         setOwnerId(profile.id);
         setBusinessName(profile.business_name);
         setAvatarUrl(profile.avatar_url);
+        if (profile.business_hours) setBusinessHours(profile.business_hours as BusinessHours);
         const { data: svcs } = await supabase
           .from("services")
           .select("*")
@@ -71,6 +92,29 @@ const PublicBooking = () => {
     };
     loadProfile();
   }, [slug]);
+
+  // Available times for selected date based on business hours
+  const availableTimes = useMemo(() => {
+    if (!selectedDate) return [];
+    const dayKey = DAY_KEY_MAP[getDay(selectedDate)];
+    if (!businessHours || !businessHours[dayKey]) {
+      // Fallback: default times if no hours configured
+      return [
+        "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
+        "11:00", "11:30", "13:00", "13:30", "14:00", "14:30",
+        "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
+      ];
+    }
+    return generateTimesFromSchedule(businessHours[dayKey]);
+  }, [selectedDate, businessHours]);
+
+  // Disable dates where the business is closed
+  const isDateDisabled = (date: Date) => {
+    if (date < new Date(new Date().setHours(0, 0, 0, 0))) return true;
+    if (!businessHours) return false;
+    const dayKey = DAY_KEY_MAP[getDay(date)];
+    return businessHours[dayKey] ? !businessHours[dayKey].enabled : false;
+  };
 
   const resetBooking = () => {
     setStep(1);
@@ -83,10 +127,7 @@ const PublicBooking = () => {
   };
 
   const handleConfirm = async () => {
-    if (!clientName.trim()) {
-      toast.error("Digite seu nome");
-      return;
-    }
+    if (!clientName.trim()) { toast.error("Digite seu nome"); return; }
     if (!ownerId) return;
     const service = services.find((s) => s.id === selectedService);
     const { error } = await supabase.from("appointments").insert({
@@ -99,10 +140,7 @@ const PublicBooking = () => {
       time: selectedTime,
       status: "confirmed",
     });
-    if (error) {
-      toast.error("Erro ao agendar. Tente novamente.");
-      return;
-    }
+    if (error) { toast.error("Erro ao agendar. Tente novamente."); return; }
     setConfirmed(true);
     toast.success("Agendamento confirmado!");
   };
@@ -238,7 +276,7 @@ const PublicBooking = () => {
                   selected={selectedDate}
                   onSelect={(d) => { if (d) { setSelectedDate(d); setStep(3); } }}
                   locale={ptBR}
-                  disabled={(date) => date < new Date()}
+                  disabled={isDateDisabled}
                   className="glass-card p-3"
                 />
               </div>
@@ -247,38 +285,32 @@ const PublicBooking = () => {
             {step === 3 && (
               <div>
                 <h2 className="text-lg font-bold text-foreground mb-4">Escolha o horário</h2>
-                <div className="grid grid-cols-3 gap-2">
-                  {availableTimes.map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => { setSelectedTime(t); setStep(4); }}
-                      className={cn(
-                        "glass-card p-3 text-sm font-mono text-center transition-colors",
-                        selectedTime === t ? "border-primary text-primary" : "text-foreground"
-                      )}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+                {availableTimes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Nenhum horário disponível nesta data.</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {availableTimes.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => { setSelectedTime(t); setStep(4); }}
+                        className={cn(
+                          "glass-card p-3 text-sm font-mono text-center transition-colors",
+                          selectedTime === t ? "border-primary text-primary" : "text-foreground"
+                        )}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {step === 4 && (
               <div>
                 <h2 className="text-lg font-bold text-foreground mb-4">Seus dados</h2>
-                <Input
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  placeholder="Seu nome"
-                  className="mb-3"
-                />
-                <Input
-                  value={clientPhone}
-                  onChange={(e) => setClientPhone(e.target.value)}
-                  placeholder="Telefone (opcional)"
-                  className="mb-4"
-                />
+                <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Seu nome" className="mb-3" />
+                <Input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="Telefone (opcional)" className="mb-4" />
                 <div className="glass-card p-4 mb-4 text-sm space-y-1">
                   <p className="text-muted-foreground flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> {services.find((s) => s.id === selectedService)?.name}</p>
                   <p className="text-muted-foreground flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5" /> {format(selectedDate!, "dd/MM/yyyy")}</p>
