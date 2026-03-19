@@ -97,9 +97,23 @@ const Settings = () => {
     setEditName(false);
   };
 
+  const [deleting, setDeleting] = useState(false);
+
   const handleDeleteAccount = async () => {
-    toast.error("Para excluir sua conta, entre em contato com o suporte.");
-    setDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-account");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      await supabase.auth.signOut();
+      toast.success("Conta excluída com sucesso.");
+      window.location.href = "/";
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir conta.");
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(false);
+    }
   };
 
   return (
