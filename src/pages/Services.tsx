@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import StaffCard, { type Staff } from "@/components/services/StaffCard";
 
 interface Service {
   id: string;
@@ -20,6 +21,7 @@ interface Service {
 const Services = () => {
   const { user } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Service | null>(null);
   const [name, setName] = useState("");
@@ -28,7 +30,10 @@ const Services = () => {
   const [category, setCategory] = useState("");
 
   useEffect(() => {
-    if (user) fetchServices();
+    if (user) {
+      fetchServices();
+      fetchStaff();
+    }
   }, [user]);
 
   const fetchServices = async () => {
@@ -38,6 +43,15 @@ const Services = () => {
       .eq("user_id", user!.id)
       .order("created_at");
     if (data) setServices(data);
+  };
+
+  const fetchStaff = async () => {
+    const { data } = await supabase
+      .from("staff")
+      .select("*")
+      .eq("user_id", user!.id)
+      .order("name");
+    if (data) setStaff(data);
   };
 
   const openNew = () => {
@@ -97,7 +111,7 @@ const Services = () => {
         </Button>
       </div>
 
-      <div className="grid gap-3">
+      <div className="grid gap-3 mb-8">
         {services.map((s) => (
           <div key={s.id} className="glass-card p-4 flex items-center justify-between">
             <div>
@@ -122,6 +136,11 @@ const Services = () => {
           <p className="text-sm text-muted-foreground text-center py-8">Nenhum serviço cadastrado. Clique em "Novo" para começar.</p>
         )}
       </div>
+
+      {/* Staff / Atendentes */}
+      {user && (
+        <StaffCard userId={user.id} staff={staff} onRefresh={fetchStaff} />
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
