@@ -39,6 +39,7 @@ Deno.serve(async (req) => {
 
     // Delete user data from all tables (order matters for FK constraints)
     await adminClient.from("appointments").delete().eq("user_id", user.id);
+    await adminClient.from("staff").delete().eq("user_id", user.id);
     await adminClient.from("services").delete().eq("user_id", user.id);
     await adminClient.from("subscriptions").delete().eq("user_id", user.id);
     await adminClient.from("profiles").delete().eq("id", user.id);

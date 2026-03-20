@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { format, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Check, Sparkles, CalendarDays, Clock, Search, ArrowLeft } from "lucide-react";
+import { Check, Sparkles, CalendarDays, Clock, Search, ArrowLeft, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -20,6 +20,12 @@ interface Service {
   user_id: string;
 }
 
+interface StaffMember {
+  id: string;
+  name: string;
+  role: string | null;
+}
+
 interface Appointment {
   id: string;
   client_name: string;
@@ -27,11 +33,11 @@ interface Appointment {
   date: string;
   time: string;
   status: string;
+  staff_name?: string;
 }
 
 type ViewMode = "home" | "booking" | "manage";
 
-// Map JS getDay (0=Sun) to our keys
 const DAY_KEY_MAP = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 function generateTimesFromSchedule(schedule: DaySchedule): string[] {
@@ -55,6 +61,7 @@ const PublicBooking = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientName, setClientName] = useState("");
@@ -64,10 +71,24 @@ const PublicBooking = () => {
   const [foundAppointments, setFoundAppointments] = useState<Appointment[]>([]);
   const [searched, setSearched] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [businessHours, setBusinessHours] = useState<BusinessHours | null>(null);
+
+  // Total steps depends on whether there are staff members
+  const hasStaff = staffList.length > 0;
+  const totalSteps = hasStaff ? 5 : 4;
+
+  // Step mapping: with staff → 1:service, 2:staff, 3:date, 4:time, 5:confirm
+  // Without staff → 1:service, 2:date, 3:time, 4:confirm
+  const getStepLabel = (s: number) => {
+    if (hasStaff) {
+      return s;
+    }
+    return s;
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -82,23 +103,22 @@ const PublicBooking = () => {
         setBusinessName(profile.business_name);
         setAvatarUrl(profile.avatar_url);
         if (profile.business_hours) setBusinessHours(profile.business_hours as BusinessHours);
-        const { data: svcs } = await supabase
-          .from("services")
-          .select("*")
-          .eq("user_id", profile.id)
-          .order("name");
+
+        const [{ data: svcs }, { data: staffData }] = await Promise.all([
+          supabase.from("services").select("*").eq("user_id", profile.id).order("name"),
+          supabase.from("staff").select("id, name, role").eq("user_id", profile.id).order("name"),
+        ]);
         if (svcs) setServices(svcs);
+        if (staffData) setStaffList(staffData);
       }
     };
     loadProfile();
   }, [slug]);
 
-  // Available times for selected date based on business hours
   const availableTimes = useMemo(() => {
     if (!selectedDate) return [];
     const dayKey = DAY_KEY_MAP[getDay(selectedDate)];
     if (!businessHours || !businessHours[dayKey]) {
-      // Fallback: default times if no hours configured
       return [
         "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
         "11:00", "11:30", "13:00", "13:30", "14:00", "14:30",
@@ -108,7 +128,6 @@ const PublicBooking = () => {
     return generateTimesFromSchedule(businessHours[dayKey]);
   }, [selectedDate, businessHours]);
 
-  // Disable dates where the business is closed
   const isDateDisabled = (date: Date) => {
     if (date < new Date(new Date().setHours(0, 0, 0, 0))) return true;
     if (!businessHours) return false;
@@ -119,6 +138,7 @@ const PublicBooking = () => {
   const resetBooking = () => {
     setStep(1);
     setSelectedService(null);
+    setSelectedStaff(null);
     setSelectedDate(undefined);
     setSelectedTime(null);
     setClientName("");
@@ -126,11 +146,18 @@ const PublicBooking = () => {
     setConfirmed(false);
   };
 
+  // Determine what "date step", "time step", and "confirm step" are
+  const dateStep = hasStaff ? 3 : 2;
+  const timeStep = hasStaff ? 4 : 3;
+  const confirmStep = hasStaff ? 5 : 4;
+
   const handleConfirm = async () => {
     if (!clientName.trim()) { toast.error("Digite seu nome"); return; }
     if (!ownerId) return;
     const service = services.find((s) => s.id === selectedService);
-    const { error } = await supabase.from("appointments").insert({
+    const staffMember = staffList.find((s) => s.id === selectedStaff);
+
+    const insertData: Record<string, unknown> = {
       user_id: ownerId,
       client_name: clientName.trim(),
       client_phone: clientPhone || null,
@@ -139,7 +166,14 @@ const PublicBooking = () => {
       date: format(selectedDate!, "yyyy-MM-dd"),
       time: selectedTime,
       status: "confirmed",
-    });
+    };
+
+    if (staffMember) {
+      insertData.staff_id = staffMember.id;
+      insertData.staff_name = staffMember.name;
+    }
+
+    const { error } = await supabase.from("appointments").insert(insertData);
     if (error) { toast.error("Erro ao agendar. Tente novamente."); return; }
     setConfirmed(true);
     toast.success("Agendamento confirmado!");
@@ -205,7 +239,10 @@ const PublicBooking = () => {
             <div key={a.id} className="glass-card p-4 mb-3 flex justify-between items-center">
               <div>
                 <p className="text-sm font-medium text-foreground">{a.service_name}</p>
-                <p className="text-xs text-muted-foreground">{a.date} às {a.time}</p>
+                <p className="text-xs text-muted-foreground">
+                  {a.date} às {a.time}
+                  {a.staff_name && ` • ${a.staff_name}`}
+                </p>
               </div>
               <Button variant="ghost" size="sm" className="text-destructive text-xs" onClick={() => handleCancelAppointment(a.id)}>
                 Cancelar
@@ -230,17 +267,20 @@ const PublicBooking = () => {
             <h2 className="text-xl font-bold text-foreground mb-2">Confirmado!</h2>
             <p className="text-sm text-muted-foreground mb-4">
               {services.find((s) => s.id === selectedService)?.name} — {format(selectedDate!, "dd/MM/yyyy")} às {selectedTime}
+              {selectedStaff && ` • com ${staffList.find((s) => s.id === selectedStaff)?.name}`}
             </p>
             <Button onClick={() => setViewMode("home")} className="bg-gradient-gold text-primary-foreground">Voltar ao início</Button>
           </div>
         ) : (
           <>
+            {/* Progress bar */}
             <div className="flex gap-2 mb-6">
-              {[1, 2, 3, 4].map((s) => (
+              {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
                 <div key={s} className={cn("h-1 flex-1 rounded-full", step >= s ? "bg-primary" : "bg-muted")} />
               ))}
             </div>
 
+            {/* Step 1: Service */}
             {step === 1 && (
               <div>
                 <h2 className="text-lg font-bold text-foreground mb-4">Escolha o serviço</h2>
@@ -248,7 +288,10 @@ const PublicBooking = () => {
                   {services.map((s) => (
                     <button
                       key={s.id}
-                      onClick={() => { setSelectedService(s.id); setStep(2); }}
+                      onClick={() => {
+                        setSelectedService(s.id);
+                        setStep(hasStaff ? 2 : 2);
+                      }}
                       className={cn(
                         "w-full glass-card p-4 text-left flex justify-between items-center transition-colors",
                         selectedService === s.id && "border-primary"
@@ -268,13 +311,44 @@ const PublicBooking = () => {
               </div>
             )}
 
-            {step === 2 && (
+            {/* Step 2: Staff (only if staff exists) */}
+            {step === 2 && hasStaff && (
+              <div>
+                <h2 className="text-lg font-bold text-foreground mb-4">Escolha o atendente</h2>
+                <div className="space-y-2">
+                  {staffList.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        setSelectedStaff(s.id);
+                        setStep(3);
+                      }}
+                      className={cn(
+                        "w-full glass-card p-4 text-left flex items-center gap-3 transition-colors",
+                        selectedStaff === s.id && "border-primary"
+                      )}
+                    >
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <UserRound className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">{s.name}</p>
+                        {s.role && <p className="text-xs text-muted-foreground">{s.role}</p>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Date step */}
+            {step === dateStep && (
               <div>
                 <h2 className="text-lg font-bold text-foreground mb-4">Escolha a data</h2>
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={(d) => { if (d) { setSelectedDate(d); setStep(3); } }}
+                  onSelect={(d) => { if (d) { setSelectedDate(d); setStep(timeStep); } }}
                   locale={ptBR}
                   disabled={isDateDisabled}
                   className="glass-card p-3"
@@ -282,7 +356,8 @@ const PublicBooking = () => {
               </div>
             )}
 
-            {step === 3 && (
+            {/* Time step */}
+            {step === timeStep && (
               <div>
                 <h2 className="text-lg font-bold text-foreground mb-4">Escolha o horário</h2>
                 {availableTimes.length === 0 ? (
@@ -292,7 +367,7 @@ const PublicBooking = () => {
                     {availableTimes.map((t) => (
                       <button
                         key={t}
-                        onClick={() => { setSelectedTime(t); setStep(4); }}
+                        onClick={() => { setSelectedTime(t); setStep(confirmStep); }}
                         className={cn(
                           "glass-card p-3 text-sm font-mono text-center transition-colors",
                           selectedTime === t ? "border-primary text-primary" : "text-foreground"
@@ -306,13 +381,17 @@ const PublicBooking = () => {
               </div>
             )}
 
-            {step === 4 && (
+            {/* Confirm step */}
+            {step === confirmStep && (
               <div>
                 <h2 className="text-lg font-bold text-foreground mb-4">Seus dados</h2>
                 <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Seu nome" className="mb-3" />
                 <Input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="Telefone (opcional)" className="mb-4" />
                 <div className="glass-card p-4 mb-4 text-sm space-y-1">
                   <p className="text-muted-foreground flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> {services.find((s) => s.id === selectedService)?.name}</p>
+                  {selectedStaff && (
+                    <p className="text-muted-foreground flex items-center gap-2"><UserRound className="h-3.5 w-3.5" /> {staffList.find((s) => s.id === selectedStaff)?.name}</p>
+                  )}
                   <p className="text-muted-foreground flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5" /> {format(selectedDate!, "dd/MM/yyyy")}</p>
                   <p className="text-muted-foreground flex items-center gap-2"><Clock className="h-3.5 w-3.5" /> {selectedTime}</p>
                 </div>
