@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -51,18 +51,25 @@ const BusinessHoursCard = ({ userId, initialHours, onSaved }: Props) => {
   const [hours, setHours] = useState<BusinessHours>(initialHours);
   const [saving, setSaving] = useState(false);
 
+  // Sync state when parent data loads/changes
+  useEffect(() => {
+    setHours(initialHours);
+  }, [initialHours]);
+
   const updateDay = (day: string, field: keyof DaySchedule, value: string | boolean) => {
     setHours((prev) => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
   };
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from("profiles")
       .update({ business_hours: hours })
-      .eq("id", userId);
+      .eq("id", userId)
+      .select();
     if (error) {
-      toast.error("Erro ao salvar horários.");
+      console.error("Erro ao salvar horários:", error);
+      toast.error("Erro ao salvar horários: " + error.message);
     } else {
       toast.success("Horários salvos!");
       onSaved();
